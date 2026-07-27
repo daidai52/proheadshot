@@ -14,7 +14,7 @@ import {
 import { FiDownload } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { downloadImage, headshotsExamples, generatePlaceholderSVG } from "@/lib/utils";
+import { downloadImage, headshotsExamples } from "@/lib/utils";
 
 const ASPECT_RATIOS = [
   { label: "1:1 Square", value: "1:1" },
@@ -87,24 +87,28 @@ const HeadshotCarousel = () => {
         }}
         className="flex gap-4 w-max px-4"
       >
-        {[...headshotsExamples, ...headshotsExamples].map((example, idx) => (
+        {[...headshotsExamples, ...headshotsExamples].map((example, idx) => {
+          const colors = ["#6366f1","#8b5cf6","#a855f7","#ec4899","#f43f5e","#f97316","#eab308","#22c55e","#14b8a6","#06b6d4","#3b82f6","#84cc16","#0ea5e9","#d946ef","#f59e0b","#10b981"];
+          const color = colors[idx % colors.length];
+          return (
           <div
             key={idx}
-            className="w-40 md:w-52 aspect-[3/4] rounded-2xl overflow-hidden relative group border border-glass-border bg-glass-bg shrink-0"
+            className="w-40 md:w-52 aspect-[3/4] rounded-2xl overflow-hidden relative group border border-glass-border shrink-0 flex flex-col items-center justify-center"
+            style={{ backgroundColor: color }}
           >
-            <img
-              src={generatePlaceholderSVG(example.name)}
-              alt={example.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
-            <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-md border border-white/10 flex items-center gap-1.5 shadow-xl">
-              <div className="w-1 h-1 bg-primary-500 rounded-full animate-pulse" />
-              <span className="text-[8px] font-black text-white uppercase tracking-widest leading-none">
-                AI Generated
-              </span>
+            <div className="text-center px-4">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/20 flex items-center justify-center">
+                <span className="text-white text-2xl font-black">{example.name.slice(0,2).toUpperCase()}</span>
+              </div>
+              <span className="text-white text-sm font-bold block">{example.name}</span>
+              <span className="text-white/60 text-[10px] mt-1 block">AI Portrait</span>
+            </div>
+            <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-md border border-white/10">
+              <span className="text-[8px] font-black text-white uppercase tracking-widest">✦ AI Generated</span>
             </div>
           </div>
-        ))}
+          );
+        })}
       </motion.div>
     </div>
   );
