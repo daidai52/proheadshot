@@ -231,8 +231,16 @@ export default function Home() {
         throw new Error(data.error || "Failed to initiate request.");
       }
 
-      const { request_id } = data;
-      await pollStatus(request_id);
+      // Handle synchronous result (SiliconFlow) or polling (legacy)
+      if (data.status === "completed" && data.imageUrl) {
+        setResultUrl(data.imageUrl);
+        setStatusMessage("");
+        setLoading(false);
+      } else if (data.request_id) {
+        await pollStatus(data.request_id);
+      } else {
+        throw new Error("Unexpected response from server");
+      }
     } catch (err) {
       setError(err.message || "An unexpected error occurred.");
       setLoading(false);

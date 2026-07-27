@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import config from "@/lib/config";
 
 export async function POST(req) {
   try {
@@ -18,30 +17,22 @@ export async function POST(req) {
       return new NextResponse("No file provided", { status: 400 });
     }
 
-    const apiKey = config.ai.headshot.apiKey;
-    if (!apiKey) {
-      return new NextResponse("API Key not configured", { status: 500 });
+    // Validate file type
+    if (!file.type || !file.type.startsWith("image/")) {
+      return new NextResponse("Only image files are allowed", { status: 400 });
     }
 
-    // Prepare for MuAPI
-    const muapiFormData = new FormData();
-    muapiFormData.append("file", file);
-
-    const response = await fetch("https://api.muapi.ai/api/v1/upload_file", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-      },
-      body: muapiFormData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`MuAPI Upload Failed: ${response.status} ${errorText}`);
+    if (file.size > 5 * 1024 * 1024) {
+      return new NextResponse("File size exceeds 5MB limit", { status: 400 });
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Convert file to base64 data URL
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
+
+    return NextResponse.json({ url: dataUrl });
   } catch (error) {
     console.error("[UPLOAD_ERROR]", error);
     return new NextResponse(error.message || "Internal Error", { status: 500 });

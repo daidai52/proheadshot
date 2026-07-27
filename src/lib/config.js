@@ -28,8 +28,9 @@ const config = {
   },
   ai: {
     headshot: {
-      apiKey: process.env.HEADSHOT_API_KEY,
-      endpoint: "https://api.muapi.ai/api/v1/photo-pack",
+      apiKey: process.env.SILICONFLOW_API_KEY,
+      endpoint: "https://api.siliconflow.cn/v1/images/generations",
+      model: "Qwen/Qwen-Image",
     }
   },
   db: {
@@ -43,7 +44,7 @@ const config = {
 if (typeof window === "undefined") {
   const requiredKeys = [
     ["DATABASE_URL", config.db.url],
-    ["HEADSHOT_API_KEY", config.ai.headshot.apiKey],
+    ["SILICONFLOW_API_KEY", config.ai.headshot.apiKey],
   ];
   requiredKeys.forEach(([name, value]) => {
     if (!value) {
