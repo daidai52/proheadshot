@@ -55,39 +55,15 @@ export const PayPalService = {
           amount: {
             currency_code: "USD",
             value: (plan.price / 100).toFixed(2),
-            breakdown: {
-              item_total: {
-                currency_code: "USD",
-                value: (plan.price / 100).toFixed(2),
-              },
-            },
           },
-          items: [
-            {
-              name: plan.name,
-              description: `${plan.credits} AI Headshot Credits`,
-              unit_amount: {
-                currency_code: "USD",
-                value: (plan.price / 100).toFixed(2),
-              },
-              quantity: "1",
-              category: "DIGITAL_GOODS",
-            },
-          ],
         },
       ],
-      payment_source: {
-        paypal: {
-          experience_context: {
-            payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
-            brand_name: config.appName,
-            locale: "en-US",
-            landing_page: "LOGIN",
-            user_action: "PAY_NOW",
-            return_url: `${config.paypal.returnUrl}/api/paypal/capture`,
-            cancel_url: `${config.paypal.returnUrl}/pricing?canceled=true`,
-          },
-        },
+      application_context: {
+        brand_name: config.appName,
+        landing_page: "LOGIN",
+        user_action: "PAY_NOW",
+        return_url: `${config.paypal.returnUrl}/api/paypal/capture?planId=${planId}`,
+        cancel_url: `${config.paypal.returnUrl}/pricing?canceled=true`,
       },
     };
 
@@ -106,11 +82,12 @@ export const PayPalService = {
     }
 
     const order = await res.json();
+    console.log("[PAYPAL_DEBUG] Order response:", JSON.stringify(order).slice(0, 500));
 
     // Find the approval URL from the links
     const approvalLink = order.links?.find((l) => l.rel === "approve")?.href;
     if (!approvalLink) {
-      throw new Error("No approval URL in PayPal response");
+      throw new Error(`No approval URL in PayPal response. Links: ${JSON.stringify(order.links)}`);
     }
 
     return {
