@@ -33,7 +33,7 @@ export async function POST(req) {
         email: normalizedEmail,
         password: hashedPassword,
         name: name || normalizedEmail.split("@")[0],
-        credits: 10, // Free credits on signup
+        credits: 60, // Free credits on signup (enough for 1 generation)
       },
     });
 

@@ -40,7 +40,7 @@ model User {
   password      String?
   emailVerified DateTime?
   image         String?
-  credits       Int           @default(10)
+  credits       Int           @default(60)
   customApiKey  String?       @db.Text
   accounts      Account[]
   sessions      Session[]

@@ -37,9 +37,9 @@ export async function POST(req) {
     });
   } catch (error) {
     if (error.message === "Insufficient credits") {
-      return new NextResponse("Insufficient credits", { status: 403 });
+      return NextResponse.json({ error: "Insufficient credits. Please purchase a credit pack." }, { status: 403 });
     }
     console.error("[AI_HEADSHOT]", error);
-    return new NextResponse(error.message || "Internal Error", { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Error" }, { status: 500 });
   }
 }
