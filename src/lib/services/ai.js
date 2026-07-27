@@ -45,7 +45,21 @@ export const AIService = {
 
     if (!submitRes.ok) {
       const errorText = await submitRes.text();
-      throw new Error(`API Submission Failed: ${submitRes.status} ${errorText}`);
+      // Handle MuAPI specific errors
+      let errorMsg;
+      try {
+        const errJson = JSON.parse(errorText);
+        if (errJson.detail?.includes("Insufficient credit") || errJson.error?.code === "INSUFFICIENT_CREDITS") {
+          errorMsg = "AI provider account balance is low. Please top up your MuAPI account at https://muapi.ai/topup";
+        } else if (errJson.detail) {
+          errorMsg = errJson.detail;
+        } else {
+          errorMsg = errJson.error?.message || errorText;
+        }
+      } catch {
+        errorMsg = errorText || `API returned status ${submitRes.status}`;
+      }
+      throw new Error(errorMsg);
     }
 
     const { request_id } = await submitRes.json();
