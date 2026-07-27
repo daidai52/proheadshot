@@ -14,10 +14,6 @@ const config = {
   appName: "ProHeadshot",
   theme: "midnight",
   auth: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    },
     secret: process.env.NEXTAUTH_SECRET,
     url: process.env.NEXTAUTH_URL || "http://localhost:3000",
     webhook_url: process.env.WEBHOOK_URL || process.env.NEXTAUTH_URL || "http://localhost:3000",
@@ -46,8 +42,6 @@ const config = {
 
 if (typeof window === "undefined") {
   const requiredKeys = [
-    ["GOOGLE_CLIENT_ID", config.auth.google.clientId],
-    ["GOOGLE_CLIENT_SECRET", config.auth.google.clientSecret],
     ["DATABASE_URL", config.db.url],
     ["HEADSHOT_API_KEY", config.ai.headshot.apiKey],
   ];

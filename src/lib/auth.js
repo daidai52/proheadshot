@@ -1,6 +1,6 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
 export const authOptions = {
@@ -9,12 +9,47 @@ export const authOptions = {
     strategy: "jwt",
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+    // Email + Password login
     CredentialsProvider({
-      id: "credentials",
+      id: "login",
+      name: "Email",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required");
+        }
+
+        const email = credentials.email.trim().toLowerCase();
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!user || !user.password) {
+          throw new Error("Invalid email or password");
+        }
+
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          throw new Error("Invalid email or password");
+        }
+
+        return {
+          id: user.id,
+          name: user.name || user.email?.split("@")[0] || "User",
+          email: user.email,
+          image: user.image || null,
+          credits: user.credits,
+          customApiKey: user.customApiKey,
+          isApiKeyUser: false,
+        };
+      },
+    }),
+    // API Key login (for advanced users with their own MuAPI key)
+    CredentialsProvider({
+      id: "apikey",
       name: "API Key",
       credentials: {
         apiKey: { label: "MuAPI Key", type: "password" },
@@ -63,7 +98,7 @@ export const authOptions = {
           customApiKey: dbUser.customApiKey || apiKey,
           isApiKeyUser: true,
         };
-      }
+      },
     }),
   ],
   callbacks: {
