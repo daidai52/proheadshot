@@ -1,61 +1,68 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { BillingService } from "@/lib/services/billing";
 
-/**
- * GET /api/paypal/capture
- * PayPal redirects here after the user approves the payment.
- * We capture the order and credit the user.
- *
- * Query params: token (PayPal order ID), PayerID
- */
+const PAYPAL_CLIENT_ID = "BAA5dISbGBTQz1l2qvNR2qRfbaLRI1dmYbB_DIjOBXb88gLWACggzgR4zfzMdyw_01tzhv6eGrNNatfnxc";
+const PAYPAL_SECRET = "EKbYMoLKN1r5sqKugjlODiMLwLvrR7S3on_j4ET_AElcj6jfHTJjg7zA72NIu9bxxiicLTY9V05Iu-gR";
+const PAYPAL_API = "https://api-m.paypal.com";
+
+async function getPayPalToken() {
+  const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`).toString("base64");
+  const res = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+    method: "POST",
+    headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials",
+  });
+  const data = await res.json();
+  return data.access_token;
+}
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const orderId = searchParams.get("token"); // PayPal uses "token" for order ID
-    const payerId = searchParams.get("PayerID");
+    const orderId = searchParams.get("token");
+    const planId = searchParams.get("planId");
 
     if (!orderId) {
       return NextResponse.redirect(new URL("/pricing?error=missing_order", req.url));
     }
 
-    // We need to figure out which user this order belongs to.
-    // Since the user just came back from PayPal, we use their session.
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      // If session expired, redirect to login with the order info
+    if (!session?.user) {
       return NextResponse.redirect(
-        new URL(`/login?callbackUrl=/api/paypal/capture?token=${orderId}${payerId ? `&PayerID=${payerId}` : ""}`, req.url)
+        new URL(`/login?callbackUrl=/api/paypal/capture?token=${orderId}${planId ? `&planId=${planId}` : ""}`, req.url)
       );
     }
 
-    // We need to know which plan was purchased.
-    // The plan ID is stored in the order's purchase_units reference_id.
-    // We can look it up, but for simplicity we use the user's last stored intent.
-    // A more robust approach would store orderId → userId + planId mapping in DB.
-    // For MVP: We'll store the plan ID in the session or retrieve it from the order details.
+    const token = await getPayPalToken();
 
-    // For now, let's look up the order details from PayPal to get the plan ID.
-    const { PayPalService } = await import("@/lib/paypal");
-    const orderDetails = await PayPalService.captureOrder(orderId);
+    const captureRes = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+    });
 
-    if (!orderDetails.success) {
+    if (!captureRes.ok) {
       return NextResponse.redirect(new URL("/pricing?error=capture_failed", req.url));
     }
 
-    // Complete the purchase using the planId from the captured order
-    const result = await BillingService.completePurchase(
-      orderId,
-      session.user.id,
-      orderDetails.planId
-    );
+    const capture = await captureRes.json();
 
-    if (result.success) {
-      return NextResponse.redirect(new URL(`/pricing?success=true&credits=${result.credits}`, req.url));
+    // Get plan info from reference_id or query param
+    const actualPlanId = planId || capture.purchase_units?.[0]?.reference_id || "basic";
+
+    // Import at the top, but this is a workaround
+    const { default: config } = await import("@/lib/config");
+    const { UserService } = await import("@/lib/services/user");
+    const plan = config.getPlanConfig(actualPlanId);
+
+    if (capture.status === "COMPLETED" && plan && session.user.id) {
+      await UserService.addCredits(session.user.id, plan.credits);
+      return NextResponse.redirect(
+        new URL(`/pricing?success=true&credits=${plan.credits}`, req.url)
+      );
     }
 
-    return NextResponse.redirect(new URL("/pricing?error=credit_failed", req.url));
+    return NextResponse.redirect(new URL("/pricing?error=capture_failed", req.url));
   } catch (error) {
     console.error("[PAYPAL_CAPTURE]", error);
     return NextResponse.redirect(new URL("/pricing?error=server_error", req.url));
