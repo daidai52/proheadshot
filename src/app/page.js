@@ -14,7 +14,7 @@ import {
 import { FiDownload } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { downloadImage, headshotsExamples } from "@/lib/utils";
+import { downloadImage, headshotsExamples, generatePlaceholderSVG } from "@/lib/utils";
 
 const ASPECT_RATIOS = [
   { label: "1:1 Square", value: "1:1" },
@@ -93,7 +93,7 @@ const HeadshotCarousel = () => {
             className="w-40 md:w-52 aspect-[3/4] rounded-2xl overflow-hidden relative group border border-glass-border bg-glass-bg shrink-0"
           >
             <img
-              src={example.url}
+              src={generatePlaceholderSVG(example.name)}
               alt={example.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
