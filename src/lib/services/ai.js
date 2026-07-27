@@ -77,10 +77,6 @@ export const AIService = {
     const isUsingCustomKey = Boolean(customApiKey && customApiKey.trim().length > 0);
     const cost = isUsingCustomKey ? 0 : this.getCreditCost();
 
-    if (!isUsingCustomKey && cost > 0) {
-      await UserService.deductCredits(userId, cost);
-    }
-
     const apiKey = isUsingCustomKey ? customApiKey.trim() : config.ai.headshot.apiKey;
     if (!apiKey) throw new Error("API Key is not configured");
 
@@ -129,6 +125,11 @@ export const AIService = {
 
     if (imageUrls.length === 0) {
       throw new Error("No images generated. AI provider returned empty result.");
+    }
+
+    // Deduct credits AFTER successful generation
+    if (!isUsingCustomKey && cost > 0) {
+      await UserService.deductCredits(userId, cost);
     }
 
     // Store the generation in the database
