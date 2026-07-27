@@ -347,7 +347,15 @@ export default function Home() {
                     type="text"
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="Reference Image URL..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newImageUrl.trim()) {
+                        e.preventDefault();
+                        if (!session) { signIn(); return; }
+                        setReferenceImage(newImageUrl.trim());
+                        setNewImageUrl("");
+                      }
+                    }}
+                    placeholder="Paste image URL and press Enter..."
                     className="flex-1 bg-glass-bg border border-glass-border rounded-lg px-3 py-2 text-[10px] font-bold outline-none focus:border-primary-500/50 text-foreground drop-shadow-sm"
                   />
                   <input
@@ -358,10 +366,17 @@ export default function Home() {
                     onChange={handleFileUpload}
                   />
                   <button
-                    onClick={() =>
-                      session ? fileInputRef.current?.click() : signIn()
-                    }
+                    onClick={() => {
+                      if (newImageUrl.trim()) {
+                        if (!session) { signIn(); return; }
+                        setReferenceImage(newImageUrl.trim());
+                        setNewImageUrl("");
+                      } else {
+                        session ? fileInputRef.current?.click() : signIn();
+                      }
+                    }}
                     className="w-10 h-10 bg-primary-500/10 border border-primary-500/10 text-primary-500 rounded-lg flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group"
+                    title={newImageUrl.trim() ? "Use URL" : "Upload file"}
                   >
                     {isUploading ? (
                       <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
